@@ -55,8 +55,35 @@ app.put('/blog-posts/:id', jsonParser, (req, res)=> {
     res.status(201).send(blogpPost);
 });
 
+let server;
 
+function startServer(){
+    return new Promise(function(resolve, reject){
+        let port=3000;
+        server = app.listen(port, ()=>{
+            console.log('App started and Listening on Port 3000');
+            resolve(server);
+        }).on('error', err=>{
+            reject(err);
+        })
+    });
+}
 
-app.listen(3000, ()=>{
-    console.log('Express App listening to port 3000');
-});
+function stopServer(){
+    console.log('I am the server');
+    return new Promise(function(resolve, reject){
+        server.close(err=>{
+            if(err){
+                reject(err);
+                return;
+            }
+            resolve();
+        })
+    });
+}
+
+if (require.main === module) {
+    startServer().catch(err => console.error(err));
+}
+
+module.exports = {app, startServer, stopServer};

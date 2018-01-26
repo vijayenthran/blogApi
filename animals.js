@@ -1,18 +1,22 @@
+'use strict';
+
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
-const {BlogPosts} = require('./model');
-
-BlogPosts.create('Dog', 'Dog is a good friend', 'User1');
-BlogPosts.create('Cat', 'Be careful with cats', 'User2');
+const {animal} = require('./Models/animalmodel');
 
 router.get('/', (req, res)=> {
-    res.status(200).json(BlogPosts.get())
+    animal.find({}).then(docs =>{
+        res.status(200).json(docs);
+    }).catch(err =>{
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
 router.post('/', jsonParser, (req, res)=> {
-    const reqField= ['title', 'content', 'author'];
+    const reqField= ['name','breed' ,'content', 'author'];
     for(let i=0; i<reqField.length; i++){
         if(!(reqField[i] in req.body)) {
             const message = `${reqField[i]} parameter is missing in the request body`;
@@ -21,20 +25,35 @@ router.post('/', jsonParser, (req, res)=> {
             return;
         }
     }
-    const blogpPost = BlogPosts.create(req.body.title, req.body.content, req.body.author);
-    res.status(201).json(blogpPost);
+    let createObj = {
+        name: req.body.name,
+        breed:req.body.breed,
+        content: req.body.content,
+        author: {firstName:req.body.author.firstName,lastName:req.body.author.lastName},
+    };
+    animal.create(createObj)
+        .then(() => {
+            res.status(201).json(createObj);
+        }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
 router.delete('/:id', (req, res)=> {
     const id = req.params.id;
-    BlogPosts.delete(id);
-    console.log(`deleted Blog Post of ${id}`);
-    res.status(204).end();
+    animal.remove({_id :`${id}`}).then(() => {
+        console.info(`[INFO] -- Deleted document of the follwoing id ${id}`);
+        res.status(204).end();
+    }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
 router.put('/:id', jsonParser, (req, res)=> {
     const _id = req.params.id;
-    const reqField= ['title', 'content', 'author'];
+    const reqField= ['name','breed' ,'content', 'author'];
     for(let i=0; i<reqField.length; i++){
         if(!(reqField[i] in req.body)) {
             const message = `${reqField[i]} parameter is missing in the request body`;
@@ -43,13 +62,21 @@ router.put('/:id', jsonParser, (req, res)=> {
             return;
         }
     }
-    const blogpPost = BlogPosts.update({
-        id: _id,
-        title: req.body.title,
+    let createObj = {
+        name: req.body.name,
+        breed:req.body.breed,
         content: req.body.content,
-        author: req.body.author,
+        author: {firstName:req.body.author.firstName,lastName:req.body.author.lastName},
+    };
+    animal.updateOne(
+        {_id: id},
+        createObj
+    ).then(() => {
+        res.status(201).send(createObj);
+    }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
     });
-    res.status(201).send(blogpPost);
 });
 
 module.exports = router;

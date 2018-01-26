@@ -1,42 +1,63 @@
+'use strict';
+
 const express = require('express');
 let app = express();
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
-const {BlogPosts} = require('./model');
-// let gameBlog = require('./games');
+const {port, databaseUrl} = require('./config');
+const mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
+const {general} = require('./Models/generalmodel');
 let animalBlog = require('./animals');
-BlogPosts.create('AssasinCreed', 'AssasinCreedDescription', 'User3');
-BlogPosts.create('TombRaider', 'TombRaiderdescription', 'User4');
 
-app.use('/blog-posts/animal', animalBlog);
+app.use('/blog-posts/animals', animalBlog);
 
 app.get('/blog-posts', (req, res)=> {
-   res.status(200).json(BlogPosts.get())
+    general.find({}).then(docs =>{
+        res.status(200).json(docs);
+    }).catch(err =>{
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
-app.post('/blog-posts', jsonParser, (req, res)=> {
-    const reqField= ['title', 'content', 'author'];
-    for(let i=0; i<reqField.length; i++){
-        if(!(reqField[i] in req.body)) {
+app.post('/blog-posts', jsonParser, (req, res) => {
+    const reqField = ['title', 'content', 'author'];
+    for (let i = 0; i < reqField.length; i++) {
+        if (!(reqField[i] in req.body)) {
             const message = `${reqField[i]} parameter is missing in the request body`;
             console.error(message);
             res.status(400).end();
             return;
         }
     }
-    const blogpPost = BlogPosts.create(req.body.title, req.body.content, req.body.author);
-    res.status(201).json(blogpPost);
+    let createObj = {
+        title: req.body.title,
+        content: req.body.content,
+        author: {firstName:req.body.author.firstName,lastName:req.body.author.lastName},
+    };
+    general.create(createObj)
+        .then(() => {
+            res.status(201).json(createObj);
+        }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
 app.delete('/blog-posts/:id', (req, res)=> {
     const id = req.params.id;
-    BlogPosts.delete(id);
-    console.log(`deleted Blog Post of ${id}`);
-    res.status(204).end();
+    general.remove({_id :`${id}`}).then(() => {
+        console.info(`[INFO] -- Deleted document of the follwoing id ${id}`);
+        res.status(204).end();
+    }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
+    });
 });
 
 app.put('/blog-posts/:id', jsonParser, (req, res)=> {
-    const _id = req.params.id;
+    const id = req.params.id;
     const reqField= ['title', 'content', 'author'];
     for(let i=0; i<reqField.length; i++){
         if(!(reqField[i] in req.body)) {
@@ -46,31 +67,45 @@ app.put('/blog-posts/:id', jsonParser, (req, res)=> {
             return;
         }
     }
-    const blogpPost = BlogPosts.update({
-        id: _id,
+    let createObj = {
         title: req.body.title,
         content: req.body.content,
-        author: req.body.author,
+        author: {firstName:req.body.author.firstName,lastName:req.body.author.lastName},
+    };
+    general.updateOne(
+        {_id: id},
+        createObj
+    ).then(() => {
+            res.status(201).send(createObj);
+        }).catch(err => {
+        console.error(`[ERROR] --- ${err}`);
+        res.status(500).json({message: 'Internal server error'});
     });
-    res.status(201).send(blogpPost);
+
 });
 
 let server;
 
 function startServer(){
-    return new Promise(function(resolve, reject){
-        let port=3000;
-        server = app.listen(port, ()=>{
-            console.log('App started and Listening on Port 3000');
-            resolve(server);
-        }).on('error', err=>{
-            reject(err);
+    return mongoose.connect(databaseUrl)
+        .then(() => {
+            console.info(`[INFO] --- Database Connection Successful`);
+            return new Promise((resolve, reject)=>{
+                server = app.listen(port,()=>{
+                    console.log(`Server Started and listening on port ${port}`);
+                    resolve();
+                    return;
+                }).on('error', err=>{
+                    reject(err);
+                })
+            })
+        }).catch(err => {
+            console.log(`An error has been Occured in Starting the Server`);
+            throw err;
         })
-    });
 }
 
 function stopServer(){
-    console.log('I am the server');
     return new Promise(function(resolve, reject){
         server.close(err=>{
             if(err){

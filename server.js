@@ -22,6 +22,7 @@ app.get('/blog-posts', (req, res)=> {
 });
 
 app.post('/blog-posts', jsonParser, (req, res) => {
+    console.log('blog post is being called');
     const reqField = ['title', 'content', 'author'];
     for (let i = 0; i < reqField.length; i++) {
         if (!(reqField[i] in req.body)) {
@@ -87,6 +88,8 @@ app.put('/blog-posts/:id', jsonParser, (req, res)=> {
 let server;
 
 function startServer(){
+    console.log('I am the database URL');
+    console.log(databaseUrl);
     return mongoose.connect(databaseUrl)
         .then(() => {
             console.info(`[INFO] --- Database Connection Successful`);

@@ -87,18 +87,20 @@ app.put('/blog-posts/:id', jsonParser, (req, res)=> {
 
 let server;
 
-function startServer(){
-    console.log('I am the database URL');
-    console.log(databaseUrl);
-    return mongoose.connect(databaseUrl)
+function startServer(db) {
+    let dtbase;
+    if (!db) {
+        dtbase = databaseUrl;
+    }
+    return mongoose.connect(dtbase || db)
         .then(() => {
             console.info(`[INFO] --- Database Connection Successful`);
-            return new Promise((resolve, reject)=>{
-                server = app.listen(port,()=>{
+            return new Promise((resolve, reject) => {
+                server = app.listen(port, () => {
                     console.log(`Server Started and listening on port ${port}`);
                     resolve();
                     return;
-                }).on('error', err=>{
+                }).on('error', err => {
                     reject(err);
                 })
             })
@@ -108,15 +110,18 @@ function startServer(){
         })
 }
 
-function stopServer(){
-    return new Promise(function(resolve, reject){
-        server.close(err=>{
-            if(err){
-                reject(err);
-                return;
-            }
-            resolve();
-        })
+function stopServer() {
+    return mongoose.disconnect().then(() => {
+    }).then(() => {
+        return new Promise(function (resolve, reject) {
+            server.close(err => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve();
+            })
+        });
     });
 }
 

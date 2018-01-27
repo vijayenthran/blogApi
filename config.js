@@ -8,5 +8,6 @@ let config = {
 
 module.exports = {
     databaseUrl: process.env.databaseUrl || global.databaseUrl || config.databaseConnection,
-    port: process.env.PORT || config.serverPort
+    port: process.env.PORT || config.serverPort,
+    testdatabaseURl: process.env.testdatabaseURl || 'mongodb://localhost/test-Blog'
 };

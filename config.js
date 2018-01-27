@@ -8,5 +8,5 @@ let config = {
 
 module.exports = {
     databaseUrl: process.env.databaseUrl || global.databaseUrl || config.databaseConnection,
-    port: process.env.Port || config.serverPort
+    port: process.env.PORT || config.serverPort
 };
